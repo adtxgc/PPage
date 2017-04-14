@@ -1,7 +1,7 @@
 (function(win) {
   var loc = win.location,
     his = win.history,
-    storagePre = "PPage-",
+    storagePre = "lingxi-",
     storage = win.localStorage,
     hashMark = '#',
     hashAry = [], //hash记录列表
@@ -108,7 +108,7 @@
     var tempHash = arguments[0];
 
     if (arguments.length == 1) {
-      //主动触发hash对应回调
+      //主动触发对应hash对应回调
       if (tempHash.indexOf('/')) {
         //执行带参hash
         var hashArgs = tempHash.split('/'),
@@ -265,24 +265,11 @@
     } else {
       var tempStr = storage.getItem(storagePre + hash);
       if (!tempStr) {
-        hashObj.refresh();
-      } else {
-        hashObj.refresh(JSON.parse(tempStr));
+        return;
       }
+      hashObj.refresh(JSON.parse(tempStr));
     }
   };
-
-  /**
-   * @desc 从当前路由回到首页
-   */
-  Page.home = function(fn) {
-    var hash = loc.hash;
-    if (!hash) return;
-
-    var hashObj = _getHandleByHash(hashAry[0]);
-    hashObj.home = fn;
-    his.go('-' + hashAry.length);
-  }
 
   /**
    * @desc 把注册的hash回调绑定到onhashchange事件中
@@ -308,26 +295,23 @@
             value: hashObj.forwardArgs[i].value
           });
         }
-        hashObj.forward(tempArg);
+        if (!!hashObj.forward && typeof hashObj.forward == 'function') {
+          hashObj.forward(tempArg);
+        }
 
       } else {
-        if (!newHash && hashAry.length > 1) {
-          // 从当前hash返回首页
-          hashObj = _getHandleByHash(hashAry[0]);
-          hashObj.home();
-          hashAry = [];
-        } else {
-          // 从当前hash返回，模拟页面回退
-          hashObj = _getHandleByHash(oldHash);
-          var length = hashObj.backArgs && hashObj.backArgs.length;
-          for (var i = 0; i < length; i++) {
-            Object.defineProperty(tempArg, hashObj.backArgs[i].name, {
-              value: hashObj.backArgs[i].value
-            });
-          }
-          hashObj.back(tempArg);
-          hashAry.splice(lxUtil.getAryIndex(hashAry, oldHash), 1);
+        // 从当前hash返回，模拟页面回退
+        hashObj = _getHandleByHash(oldHash);
+        var length = hashObj.backArgs && hashObj.backArgs.length;
+        for (var i = 0; i < length; i++) {
+          Object.defineProperty(tempArg, hashObj.backArgs[i].name, {
+            value: hashObj.backArgs[i].value
+          });
         }
+        if (!!hashObj.back && typeof hashObj.back == 'function') {
+          hashObj.back(tempArg);
+        }
+        hashAry.splice(lxUtil.getAryIndex(hashAry, oldHash), 1);
       }
     }
   }
@@ -387,6 +371,6 @@
     }
   }());
 
-  win['PPage'] = Page;
+  win['lxPage'] = win['Page'] = win['page'] = Page;
 
 }(window));
