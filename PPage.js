@@ -52,6 +52,7 @@
         }
       }
       hashAry.push(loc.hash);
+      storage.setItem(storagePre + "hashAry", JSON.stringify(hashAry));
     } else if (arguments.length == 2) {
       // 注册hash对应回调
       var fn = arguments[1],
@@ -279,6 +280,9 @@
     var hash = loc.hash;
     if (!hash) return;
 
+    if (!hashAry.length) {
+      hashAry = JSON.parse(storage.getItem(storagePre + 'hashAry'));
+    }
     var hashObj = _getHandleByHash(hashAry[0]);
     hashObj.home = fn;
     his.go('-' + hashAry.length);
@@ -333,6 +337,7 @@
             hashObj.back(tempArg);
           }
           hashAry.splice(lxUtil.getAryIndex(hashAry, oldHash), 1);
+          storage.setItem(storagePre + "hashAry", JSON.stringify(hashAry));
         }
       }
     }
