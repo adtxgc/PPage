@@ -52,6 +52,17 @@
         }
       }
       hashAry.push(loc.hash);
+	  var tempHashAry = JSON.parse(storage.getItem(storagePre + "hashAry"));
+      if(tempHashAry.length > 0){
+        var count = hashAry && hashAry.length;
+        for(var i=0; i<count; i++){
+          var index = lxUtil.getAryIndex(tempHashAry,hashAry[i]);
+          if(index == -1){
+            tempHashAry.push(hashAry[i]);
+          }
+        }
+        hashAry = tempHashAry;
+      }
       storage.setItem(storagePre + "hashAry", JSON.stringify(hashAry));
     } else if (arguments.length == 2) {
       // 注册hash对应回调
@@ -241,12 +252,20 @@
   Page.save = function(hash, data) {
     var tempStr = storage.getItem(storagePre + hashMark + hash);
 
-    if (!tempStr) {
-      storage.setItem(storagePre + hashMark + hash, JSON.stringify(data));
+    if (!tempStr || tempStr == "{}") {
+      var tempObj = [];
+      for (attr in data) {
+        tempObj.push({
+          key: attr,
+          value: data[attr]
+        });
+      }
+      storage.setItem(storagePre + hashMark + hash, JSON.stringify(tempObj));
     } else {
       var tempObj = JSON.parse(tempStr);
       for (attr in data) {
-        Object.defineProperty(tempObj, attr, {
+        lxUtil.addAryItem(tempObj, {
+          key: attr,
           value: data[attr]
         });
       }
@@ -268,7 +287,15 @@
       if (!tempStr) {
         hashObj.refresh();
       } else {
-        hashObj.refresh(JSON.parse(tempStr));
+        var args = JSON.parse(tempStr),
+          length = args && args.length,
+          tempObj = {};
+        for (var i = 0; i < length; i++) {
+          Object.defineProperty(tempObj, args[i].key, {
+            value: args[i].value
+          });
+        }
+        hashObj.refresh(tempObj);
       }
     }
   };
@@ -286,6 +313,7 @@
     var hashObj = _getHandleByHash(hashAry[0]);
     hashObj.home = fn;
     his.go('-' + hashAry.length);
+	storage.setItem(storagePre + 'hashAry','[]');
   }
 
   /**
@@ -336,6 +364,9 @@
           if (!!hashObj.back && typeof hashObj.back == 'function') {
             hashObj.back(tempArg);
           }
+		  if(hashAry.length == 0){
+            hashAry = JSON.parse(storage.getItem(storagePre + "hashAry"));
+          }
           hashAry.splice(lxUtil.getAryIndex(hashAry, oldHash), 1);
           storage.setItem(storagePre + "hashAry", JSON.stringify(hashAry));
         }
@@ -350,11 +381,22 @@
    * @return {number} 1 新开页面；-1页面后退
    */
   function _judgeHashDirect(newHash, oldHash) {
-    if (lxUtil.getAryIndex(hashAry, newHash) > lxUtil.getAryIndex(hashAry,
-        oldHash)) {
-      return 1;
+    var tempHashAry = !hashAry.length ? JSON.parse(storage.getItem(storagePre +
+      'hashAry')) : hashAry;
+
+    if (tempHashAry.length == 0) {
+      if (!newHash) {
+        return -1;
+      } else {
+        return 1;
+      }
     } else {
-      return -1;
+      if (lxUtil.getAryIndex(tempHashAry, newHash) > lxUtil.getAryIndex(
+          tempHashAry, oldHash)) {
+        return 1;
+      } else {
+        return -1;
+      }
     }
   }
   /**
@@ -394,6 +436,26 @@
           }
         }
         return -1;
+      },
+      /**
+       * @desc 判断item是否存在arys中，存在则更新arys中的项，不存在则新增
+       * @arg {array} arys 数组，项是对象
+       * @arg {object} item 数组项
+       * @public
+       */
+      addAryItem: function(arys, item) {
+        var length = arys && arys.length,
+          isInAry = false;
+        for (var i = 0; i < length; i++) {
+          if (arys[i].key == item.key) {
+            arys[i].value = item.value;
+            isInAry = true;
+            break;
+          }
+        }
+        if (!isInAry) {
+          arys.push(item);
+        }
       }
     }
   }());
